@@ -1,6 +1,6 @@
 from flask import Flask, request, send_file
 from PIL import Image, ImageDraw, ImageFont
-
+import os
 app = Flask(__name__)
 
 @app.route("/cheque")
@@ -26,6 +26,7 @@ def cheque():
 
     return send_file("bots/cheque_temp.png", mimetype="image/png")
 
+PORT = int(os.environ.get("PORT", 8080))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=PORT)
