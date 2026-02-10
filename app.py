@@ -54,6 +54,4 @@ def cheque():
 PORT = int(os.environ.get("PORT", 5000))
 HOST = "0.0.0.0"
 
-if __name__ == "__main__":
-    print(f"Starting server on {HOST}:{PORT}")
-    app.run(host=HOST, port=PORT)
+app.run(host=HOST, port=PORT)
