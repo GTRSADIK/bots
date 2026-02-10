@@ -1,27 +1,55 @@
-import os
 from flask import Flask, request, send_file
 from PIL import Image, ImageDraw, ImageFont
 import io
+import os
 
 app = Flask(__name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHEQUE_IMG = os.path.join(BASE_DIR, "cheque.png")
-FONT_TTF = os.path.join(BASE_DIR, "DejaVuSans-Bold.ttf")
+@app.route("/")
+def home():
+    return "Cheque Generator API is running ✅"
 
 @app.route("/cheque")
 def cheque():
+    # Query parameters
     coin = request.args.get("coinCode", "USDT")
-    amc = request.args.get("amountCrypto", "0.01")
-    amf = request.args.get("amountFiat", "0.01")
-    img = Image.open(CHEQUE_IMG).convert("RGBA")
-    d = ImageDraw.Draw(img)
-    f = ImageFont.truetype(FONT_TTF, 48)
-    text = f"{amc} {coin}   {amf}"
+    amount_crypto = request.args.get("amountCrypto", "0.01")
+    amount_fiat = request.args.get("amountFiat", "0.01")
+    background = request.args.get("backgroundType", "default")
+
+    # Base image path
+    img_path = os.path.join(os.path.dirname(__file__), "cheque.png")
+    if not os.path.exists(img_path):
+        return "Base image not found", 404
+
+    img = Image.open(img_path)
+    draw = ImageDraw.Draw(img)
+
+    # Font path
+    font_path = os.path.join(os.path.dirname(__file__), "DejaVuSans-Bold.ttf")
+    if not os.path.exists(font_path):
+        return "Font not found", 404
+
+    font = ImageFont.truetype(font_path, 40)
+
+    # Text to draw
+    text = f"{amount_crypto} {coin}"
+
+    # Center the text
     w, h = img.size
-    tw, th = d.textsize(text, font=f)
-    d.text(((w-tw)/2, h-th-60), text, font=f, fill="white")
+    text_w, text_h = draw.textsize(text, font=font)
+    x = (w - text_w) // 2
+    y = (h - text_h) // 2
+
+    draw.text((x, y), text, fill="black", font=font)
+
+    # Return as PNG
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
     return send_file(buf, mimetype="image/png")
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
