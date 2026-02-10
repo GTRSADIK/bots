@@ -1,39 +1,59 @@
 import os
-from flask import Flask, request, send_file
+from flask import Flask, send_file, request
 from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 
-PORT = int(os.environ.get("PORT", 8080))  # Railway port
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # ensure paths correct
+# Base directory for relative paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Default cheque image and font
+CHEQUE_IMG = os.path.join(BASE_DIR, "cheque.png")
+FONT_TTF = os.path.join(BASE_DIR, "DejaVuSans-Bold.ttf")
 
 @app.route("/cheque")
 def cheque():
-    coinCode = request.args.get("coinCode", "USDT")
-    amountCrypto = request.args.get("amountCrypto", "0.01")
-    amountFiat = request.args.get("amountFiat", "0.01")
-    
-    # Image path
-    img_path = os.path.join(BASE_DIR, "cheque.png")
-    font_path = os.path.join(BASE_DIR, "DejaVuSans-Bold.ttf")
+    # Get query params
+    coin_code = request.args.get("coinCode", "USDT")
+    amount_crypto = request.args.get("amountCrypto", "0.01")
+    amount_fiat = request.args.get("amountFiat", "0.01")
+    fiat_code = request.args.get("fiatCode", "USD")
+    background_type = request.args.get("backgroundType", "default")
 
-    # Load image
-    img = Image.open(img_path)
+    # Open base cheque image
+    if not os.path.exists(CHEQUE_IMG):
+        return "Cheque image not found", 404
+
+    img = Image.open(CHEQUE_IMG).convert("RGBA")
     draw = ImageDraw.Draw(img)
 
     # Load font
-    font = ImageFont.truetype(font_path, 48)
+    if not os.path.exists(FONT_TTF):
+        return "Font file not found", 404
+    font = ImageFont.truetype(FONT_TTF, 32)
 
-    # Write text
-    draw.text((500, 300), f"{amountCrypto} {coinCode}", font=font, fill=(0, 0, 0))
-    draw.text((500, 400), f"${amountFiat}", font=font, fill=(0, 0, 255))
+    # Prepare text
+    text = f"{amount_crypto} {coin_code}  |  {amount_fiat} {fiat_code}"
 
-    # Save temp
-    temp_path = os.path.join(BASE_DIR, "cheque_temp.png")
+    # Calculate position (bottom center)
+    w, h = img.size
+    text_w, text_h = draw.textsize(text, font=font)
+    x = (w - text_w) / 2
+    y = h - text_h - 50
+
+    # Draw text
+    draw.text((x, y), text, font=font, fill="white")  # white text on default background
+
+    # Save temp file
+    temp_path = os.path.join(BASE_DIR, "temp_cheque.png")
     img.save(temp_path)
 
     return send_file(temp_path, mimetype="image/png")
 
+# Railway uses PORT env
+PORT = int(os.environ.get("PORT", 5000))
+HOST = "0.0.0.0"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT)
+    print(f"Starting server on {HOST}:{PORT}")
+    app.run(host=HOST, port=PORT)
